@@ -8,9 +8,7 @@ const app = Fastify({ logger: true });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DB_HOST?.includes("localhost")
-    ? false
-    : { rejectUnauthorized: false },
+  ssl: false,
 });
 
 app.get("/health", async () => ({ status: "ok" }));
