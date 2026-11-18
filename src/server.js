@@ -37,6 +37,37 @@ app.get("/api/db-check", async (request, reply) => {
   }
 });
 
+// Get active projects
+app.get("/api/projects", async (request, reply) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        id,
+        project_code,
+        project_name,
+        description,
+        is_active
+      FROM projects
+      WHERE is_active = true
+      ORDER BY project_code
+    `);
+
+    return {
+      status: "success",
+      count: result.rowCount,
+      projects: result.rows,
+    };
+  } catch (error) {
+    app.log.error(error);
+    reply.code(500);
+
+    return {
+      status: "error",
+      message: "Could not retrieve projects",
+    };
+  }
+});
+
 const port = Number(process.env.PORT ?? 3000);
 
 app.listen({ host: "0.0.0.0", port }).catch((error) => {
