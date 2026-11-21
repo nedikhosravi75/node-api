@@ -1,11 +1,14 @@
 
 import Fastify from "fastify";
 import pg from "pg";
-
+import cors from "@fastify/cors";
 const { Pool } = pg;
 
 const app = Fastify({ logger: true });
-
+await app.register(cors, {
+  origin: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"],
+});
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: false,
