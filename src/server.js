@@ -68,6 +68,62 @@ app.get("/api/projects", async (request, reply) => {
   }
 });
 
+// Get centers by project ID
+app.get("/api/projects/:projectId/centers", async (request, reply) => {
+  try {
+    const projectId = Number(request.params.projectId);
+
+    if (!Number.isSafeInteger(projectId) || projectId <= 0) {
+      return reply.code(400).send({
+        status: "error",
+        message: "Invalid project ID",
+      });
+    }
+
+    const projectResult = await pool.query(
+      `SELECT id, project_code, project_name
+       FROM projects
+       WHERE id = $1 AND is_active = true`,
+      [projectId]
+    );
+
+    if (projectResult.rowCount === 0) {
+      return reply.code(404).send({
+        status: "error",
+        message: "Project not found",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT
+         id,
+         project_id,
+         center_code,
+         center_name,
+         address,
+         is_active,
+         created_at
+       FROM food_centers
+       WHERE project_id = $1
+       ORDER BY center_code`,
+      [projectId]
+    );
+
+    return {
+      status: "success",
+      project: projectResult.rows[0],
+      count: result.rowCount,
+      centers: result.rows,
+    };
+  } catch (error) {
+    app.log.error(error);
+    return reply.code(500).send({
+      status: "error",
+      message: "Could not retrieve project centers",
+    });
+  }
+});
+
 // Get foods by project ID
 app.get("/api/projects/:projectId/foods", async (request, reply) => {
   try {
