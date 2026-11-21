@@ -68,6 +68,70 @@ app.get("/api/projects", async (request, reply) => {
   }
 });
 
+// Get foods by project ID
+app.get("/api/projects/:projectId/foods", async (request, reply) => {
+  try {
+    const projectId = Number(request.params.projectId);
+
+    if (!Number.isSafeInteger(projectId) || projectId <= 0) {
+      return reply.code(400).send({
+        status: "error",
+        message: "Invalid project ID",
+      });
+    }
+
+    const projectResult = await pool.query(
+      `SELECT id, project_code, project_name
+       FROM projects
+       WHERE id = $1 AND is_active = true`,
+      [projectId]
+    );
+
+    if (projectResult.rowCount === 0) {
+      return reply.code(404).send({
+        status: "error",
+        message: "Project not found",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT
+         f.id,
+         f.food_code,
+         f.food_name,
+         f.description,
+         fc.id AS category_id,
+         fc.category_name,
+         fs.id AS subcategory_id,
+         fs.subcategory_name
+       FROM foods f
+       JOIN food_categories fc
+         ON fc.id = f.category_id
+        AND fc.project_id = f.project_id
+       JOIN food_subcategories fs
+         ON fs.id = f.subcategory_id
+        AND fs.category_id = fc.id
+       WHERE f.project_id = $1
+         AND f.is_active = true
+       ORDER BY f.food_code`,
+      [projectId]
+    );
+
+    return {
+      status: "success",
+      project: projectResult.rows[0],
+      count: result.rowCount,
+      foods: result.rows,
+    };
+  } catch (error) {
+    app.log.error(error);
+    return reply.code(500).send({
+      status: "error",
+      message: "Could not retrieve project foods",
+    });
+  }
+});
+
 const port = Number(process.env.PORT ?? 3000);
 
 app.listen({ host: "0.0.0.0", port }).catch((error) => {
